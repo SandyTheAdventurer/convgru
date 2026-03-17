@@ -19,27 +19,24 @@ class ConvGRUCell(nn.Module):
         self.update_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
         self.out_gate = nn.Conv2d(input_size + hidden_size, hidden_size, kernel_size, padding=padding)
 
-        init.orthogonal(self.reset_gate.weight)
-        init.orthogonal(self.update_gate.weight)
-        init.orthogonal(self.out_gate.weight)
-        init.constant(self.reset_gate.bias, 0.)
-        init.constant(self.update_gate.bias, 0.)
-        init.constant(self.out_gate.bias, 0.)
+        init.orthogonal_(self.reset_gate.weight)
+        init.orthogonal_(self.update_gate.weight)
+        init.orthogonal_(self.out_gate.weight)
+        init.constant_(self.reset_gate.bias, 0.)
+        init.constant_(self.update_gate.bias, 0.)
+        init.constant_(self.out_gate.bias, 0.)
 
 
     def forward(self, input_, prev_state):
 
         # get batch and spatial sizes
-        batch_size = input_.data.size()[0]
-        spatial_size = input_.data.size()[2:]
+        batch_size = input_.size(0)
+        spatial_size = input_.size()[2:]
 
         # generate empty prev_state, if None is provided
         if prev_state is None:
-            state_size = [batch_size, self.hidden_size] + list(spatial_size)
-            if torch.cuda.is_available():
-                prev_state = Variable(torch.zeros(state_size)).cuda()
-            else:
-                prev_state = Variable(torch.zeros(state_size))
+            state_size = (batch_size, self.hidden_size) + tuple(spatial_size)
+            prev_state = input_.new_zeros(state_size)
 
         # data size is [batch, channel, height, width]
         stacked_inputs = torch.cat([input_, prev_state], dim=1)
@@ -112,7 +109,7 @@ class ConvGRU(nn.Module):
         -------
         upd_hidden : 5D hidden representation. (layer, batch, channels, height, width).
         '''
-        if not hidden:
+        if hidden is None:
             hidden = [None]*self.n_layers
 
         input_ = x
